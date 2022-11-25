@@ -16,8 +16,7 @@ fun DoubleText(
     title: String,
     body: String,
     dimmed: Boolean,
-    onClickTitle: () -> Unit,
-    onClickBody: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -31,7 +30,7 @@ fun DoubleText(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onClickTitle
+                    onClick = onClick
                 ),
             text = title,
             style = ComposeAppTheme.typography.title2R,
@@ -44,7 +43,7 @@ fun DoubleText(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onClickBody
+                    onClick = onClick
                 ),
             text = body,
             style = ComposeAppTheme.typography.body,

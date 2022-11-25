@@ -23,18 +23,19 @@ class BalanceViewModel(
     private val balanceViewTypeManager: BalanceViewTypeManager,
     private val balanceHiddenManager: BalanceHiddenManager
 ) : ViewModel() {
-    private var totalState = createTotalUIState(totalService.stateFlow.value)
+    private var balanceViewType = balanceViewTypeManager.balanceViewTypeFlow.value
+    private var totalState = totalService.stateFlow.value
+    private var totalUIState = createTotalUIState()
     private var viewState: ViewState = ViewState.Loading
     private var balanceViewItems = listOf<BalanceViewItem>()
     private var isRefreshing = false
-    private var balanceViewType = balanceViewTypeManager.balanceViewTypeFlow.value
 
     var uiState by mutableStateOf(
         BalanceUiState(
             balanceViewItems = balanceViewItems,
             viewState = viewState,
             isRefreshing = isRefreshing,
-            totalState = totalState
+            totalState = totalUIState
         )
     )
         private set
@@ -61,7 +62,8 @@ class BalanceViewModel(
 
         viewModelScope.launch {
             totalService.stateFlow.collect {
-                handleUpdatedTotalState(it)
+                totalState = it
+                updatedTotalUIState()
             }
         }
 
@@ -82,11 +84,13 @@ class BalanceViewModel(
         service.balanceItemsFlow.value?.let {
             refreshViewItems(it)
         }
+
+        updatedTotalUIState()
     }
 
-    private suspend fun handleUpdatedTotalState(totalState: TotalService.State) {
+    private suspend fun updatedTotalUIState() {
         withContext(Dispatchers.IO) {
-            this@BalanceViewModel.totalState = createTotalUIState(totalState)
+            this@BalanceViewModel.totalUIState = createTotalUIState()
 
             emitState()
         }
@@ -97,7 +101,7 @@ class BalanceViewModel(
             balanceViewItems = balanceViewItems,
             viewState = viewState,
             isRefreshing = isRefreshing,
-            totalState = totalState
+            totalState = totalUIState
         )
 
         viewModelScope.launch {
@@ -135,10 +139,6 @@ class BalanceViewModel(
             balanceHiddenManager.toggleBalanceHidden()
             service.balanceItemsFlow.value?.let { refreshViewItems(it) }
         }
-    }
-
-    fun toggleTotalType() {
-        totalService.toggleType()
     }
 
     fun onItem(viewItem: BalanceViewItem) {
@@ -184,17 +184,35 @@ class BalanceViewModel(
         else -> SyncError.NetworkNotAvailable()
     }
 
-    private fun createTotalUIState(totalState: TotalService.State) = when (totalState) {
+    private fun createTotalUIState() = when (val state = totalState) {
         TotalService.State.Hidden -> TotalUIState.Hidden
         is TotalService.State.Visible -> TotalUIState.Visible(
-            currencyValueStr = totalState.currencyValue?.let {
-                App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
-            } ?: "---",
-            coinValueStr = totalState.coinValue?.let {
-                "~" + App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
-            } ?: "---",
-            dimmed = totalState.dimmed
+            primaryAmountStr = getPrimaryAmount(state) ?: "---",
+            secondaryAmountStr = getSecondaryAmount(state) ?: "---",
+            dimmed = state.dimmed
         )
+    }
+
+    private fun getPrimaryAmount(totalState: TotalService.State.Visible): String? {
+        return when (balanceViewType) {
+            BalanceViewType.CoinThenFiat -> totalState.coinValue?.let {
+                App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
+            }
+            BalanceViewType.FiatThenCoin -> totalState.currencyValue?.let {
+                App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
+            }
+        }
+    }
+
+    private fun getSecondaryAmount(totalState: TotalService.State.Visible): String? {
+        return when (balanceViewType) {
+            BalanceViewType.CoinThenFiat -> totalState.currencyValue?.let {
+                "~" + App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
+            }
+            BalanceViewType.FiatThenCoin -> totalState.coinValue?.let {
+                "~" + App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
+            }
+        }
     }
 
     sealed class SyncError {
@@ -214,8 +232,8 @@ data class BalanceUiState(
 
 sealed class TotalUIState {
     data class Visible(
-        val currencyValueStr: String,
-        val coinValueStr: String,
+        val primaryAmountStr: String,
+        val secondaryAmountStr: String,
         val dimmed: Boolean
     ) : TotalUIState()
 

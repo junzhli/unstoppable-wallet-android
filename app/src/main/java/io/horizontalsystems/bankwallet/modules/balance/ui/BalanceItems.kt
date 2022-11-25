@@ -49,28 +49,21 @@ fun BalanceItems(
                     title = "*****",
                     body = "*****",
                     dimmed = false,
-                    onClickTitle = {
+                    onClick = {
                         viewModel.onBalanceClick()
                         HudHelper.vibrate(context)
                     },
-                    onClickBody = {
-
-                    }
                 )
             }
             is TotalUIState.Visible -> {
                 DoubleText(
-                    title = totalState.currencyValueStr,
-                    body = totalState.coinValueStr,
+                    title = totalState.primaryAmountStr,
+                    body = totalState.secondaryAmountStr,
                     dimmed = totalState.dimmed,
-                    onClickTitle = {
+                    onClick = {
                         viewModel.onBalanceClick()
                         HudHelper.vibrate(context)
                     },
-                    onClickBody = {
-                        viewModel.toggleTotalType()
-                        HudHelper.vibrate(context)
-                    }
                 )
             }
         }

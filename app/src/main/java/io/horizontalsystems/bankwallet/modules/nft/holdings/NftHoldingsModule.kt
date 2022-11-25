@@ -19,7 +19,7 @@ object NftHoldingsModule {
             val totalService = TotalService(App.currencyManager, App.marketKit, App.baseTokenManager, App.balanceHiddenManager)
             val xRateRepository = BalanceXRateRepository(App.currencyManager, App.marketKit)
             val service = NftHoldingsService(account, App.nftAdapterManager, App.nftMetadataManager, App.nftMetadataSyncer, xRateRepository)
-            return NftHoldingsViewModel(service, totalService, App.balanceHiddenManager) as T
+            return NftHoldingsViewModel(service, totalService, App.balanceHiddenManager, App.balanceViewTypeManager) as T
         }
     }
 }

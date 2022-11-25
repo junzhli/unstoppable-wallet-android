@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import io.horizontalsystems.bankwallet.core.App
 import io.horizontalsystems.bankwallet.core.managers.BalanceHiddenManager
 import io.horizontalsystems.bankwallet.entities.ViewState
+import io.horizontalsystems.bankwallet.modules.balance.BalanceViewType
+import io.horizontalsystems.bankwallet.modules.balance.BalanceViewTypeManager
 import io.horizontalsystems.bankwallet.modules.balance.TotalService
 import io.horizontalsystems.bankwallet.modules.balance.TotalUIState
 import io.horizontalsystems.bankwallet.modules.market.overview.coinValue
@@ -18,8 +20,12 @@ import kotlinx.coroutines.launch
 class NftHoldingsViewModel(
     private val service: NftHoldingsService,
     private val totalService: TotalService,
-    private val balanceHiddenManager: BalanceHiddenManager
+    private val balanceHiddenManager: BalanceHiddenManager,
+    private val balanceViewTypeManager: BalanceViewTypeManager,
 ) : ViewModel() {
+
+    private var balanceViewType = balanceViewTypeManager.balanceViewTypeFlow.value
+    private var totalState = totalService.stateFlow.value
 
     val priceType by service::priceType
 
@@ -35,7 +41,7 @@ class NftHoldingsViewModel(
     var viewItems by mutableStateOf<List<NftCollectionViewItem>>(listOf())
         private set
 
-    var totalState by mutableStateOf(createTotalUIState(totalService.stateFlow.value))
+    var totalUIState by mutableStateOf(createTotalUIState())
         private set
 
     init {
@@ -45,13 +51,21 @@ class NftHoldingsViewModel(
 
         viewModelScope.launch {
             totalService.stateFlow.collect {
-                totalState = createTotalUIState(it)
+                totalState = it
+                totalUIState = createTotalUIState()
             }
         }
 
         viewModelScope.launch {
             totalService.start()
             service.start()
+        }
+
+        viewModelScope.launch {
+            balanceViewTypeManager.balanceViewTypeFlow.collect {
+                balanceViewType = it
+                totalUIState = createTotalUIState()
+            }
         }
     }
 
@@ -105,10 +119,6 @@ class NftHoldingsViewModel(
         balanceHiddenManager.toggleBalanceHidden()
     }
 
-    fun toggleTotalType() {
-        totalService.toggleType()
-    }
-
     fun updatePriceType(priceType: PriceType) {
         service.updatePriceType(priceType)
     }
@@ -132,17 +142,35 @@ class NftHoldingsViewModel(
         totalService.stop()
     }
 
-    private fun createTotalUIState(totalState: TotalService.State) = when (totalState) {
+    private fun createTotalUIState() = when (val state = totalState) {
         TotalService.State.Hidden -> TotalUIState.Hidden
         is TotalService.State.Visible -> TotalUIState.Visible(
-            currencyValueStr = totalState.currencyValue?.let {
-                App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
-            } ?: "---",
-            coinValueStr = totalState.coinValue?.let {
-                "~" + App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
-            } ?: "---",
-            dimmed = totalState.dimmed
+            primaryAmountStr = getPrimaryAmount(state) ?: "---",
+            secondaryAmountStr = getSecondaryAmount(state) ?: "---",
+            dimmed = state.dimmed
         )
+    }
+
+    private fun getPrimaryAmount(totalState: TotalService.State.Visible): String? {
+        return when (balanceViewType) {
+            BalanceViewType.CoinThenFiat -> totalState.coinValue?.let {
+                App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
+            }
+            BalanceViewType.FiatThenCoin -> totalState.currencyValue?.let {
+                App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
+            }
+        }
+    }
+
+    private fun getSecondaryAmount(totalState: TotalService.State.Visible): String? {
+        return when (balanceViewType) {
+            BalanceViewType.CoinThenFiat -> totalState.currencyValue?.let {
+                "~" + App.numberFormatter.formatFiatFull(it.value, it.currency.symbol)
+            }
+            BalanceViewType.FiatThenCoin -> totalState.coinValue?.let {
+                "~" + App.numberFormatter.formatCoinFull(it.value, it.coin.code, it.decimal)
+            }
+        }
     }
 
 }
