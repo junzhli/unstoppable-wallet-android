@@ -58,6 +58,12 @@ object AppLog {
             }
         }
 
+        error.cause?.stackTrace?.forEachIndexed{ index, stackTraceElement ->
+            if (index < 5) {
+                sb.appendLine(stackTraceElement)
+            }
+        }
+
         return sb.toString()
     }
 }
