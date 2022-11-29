@@ -25,7 +25,7 @@ class KeyStoreManager(
     private val ANDROID_KEY_STORE = "AndroidKeyStore"
     private val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC
     private val PADDING = KeyProperties.ENCRYPTION_PADDING_PKCS7
-    private val AUTH_DURATION_SEC = 60 // 24 hours in seconds (24x60x60)
+    private val AUTH_DURATION_SEC = 86400 // 24 hours in seconds (24x60x60)
 
     private val keyStore: KeyStore
 
@@ -103,8 +103,7 @@ class KeyStoreManager(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             builder.setUserAuthenticationParameters(
                 AUTH_DURATION_SEC,
-                KeyProperties.AUTH_DEVICE_CREDENTIAL
-                        or KeyProperties.AUTH_BIOMETRIC_STRONG
+                KeyProperties.AUTH_BIOMETRIC_STRONG
             )
         } else {
             @Suppress("DEPRECATION")

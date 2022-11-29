@@ -25,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import com.google.accompanist.appcompattheme.AppCompatTheme
 import io.horizontalsystems.bankwallet.R
 import io.horizontalsystems.bankwallet.core.BaseActivity
 import io.horizontalsystems.bankwallet.modules.launcher.LaunchModule
@@ -140,10 +141,6 @@ private fun KeyStoreScreen(
         showBiometricPrompt.invoke()
     }
 
-    if (viewModel.showInvalidKeyWarning) {
-        KeysInvalidatedDialog { viewModel.onCloseInvalidKeyWarning() }
-    }
-
     ComposeAppTheme {
         if (viewModel.showSystemLockWarning) {
             Column(
@@ -154,6 +151,10 @@ private fun KeyStoreScreen(
             ) {
                 NoSystemLockWarning()
             }
+        }
+
+        if (viewModel.showInvalidKeyWarning) {
+            KeysInvalidatedDialog { viewModel.onCloseInvalidKeyWarning() }
         }
     }
 }
