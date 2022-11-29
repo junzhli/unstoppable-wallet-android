@@ -59,9 +59,10 @@ class KeyStoreActivity : BaseActivity() {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(getString(R.string.OSPin_Confirm_Title))
             .setDescription(getString(R.string.OSPin_Prompt_Desciption))
+            .setNegativeButtonText("Cancel")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            promptInfo.setAllowedAuthenticators(DEVICE_CREDENTIAL or BIOMETRIC_STRONG)
+            promptInfo.setAllowedAuthenticators(BIOMETRIC_STRONG)
         } else {
             @Suppress("DEPRECATION")
             promptInfo.setDeviceCredentialAllowed(true)
